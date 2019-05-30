@@ -1,0 +1,40 @@
+[
+    {
+        "arguments": [
+            "avr-g++",
+            "-c",
+            "-fno-exceptions",
+            "-fno-threadsafe-statics",
+            "-fpermissive",
+            "-std=gnu++11",
+            "-Os",
+            "-Wall",
+            "-ffunction-sections",
+            "-fdata-sections",
+            "-flto",
+            "-mmcu=atmega328p",
+            "-DPLATFORMIO=30607",
+            "-DARDUINO_AVR_NANO",
+            "-DF_CPU=16000000L",
+            "-DARDUINO_ARCH_AVR",
+            "-DARDUINO=10805",
+            "-Icontrol_temp",
+            "-I.piolibdeps/DirectIO_ID6327",
+            "-I.piolibdeps/TaskScheduler_ID721/src",
+            "-I.piolibdeps/QuadratureEncoder_ID6157",
+            "-I.piolibdeps/LiquidCrystal_PCF8574_ID1165/src",
+            "-I/home/emilio1625/.platformio/packages/framework-arduinoavr/libraries/__cores__/arduino/Wire/src",
+            "-I.piolibdeps/DallasTemperature_ID54",
+            "-I.piolibdeps/OneWire_ID1",
+            "-I.piolibdeps/EnableInterrupt_ID311",
+            "-I.piolibdeps/EnableInterrupt_ID311/utility",
+            "-I/home/emilio1625/.platformio/packages/framework-arduinoavr/cores/arduino",
+            "-I/home/emilio1625/.platformio/packages/framework-arduinoavr/variants/eightanaloginputs",
+            "-o",
+            ".pioenvs/nanoatmega328/src/src/electrovalvula.cpp.o",
+            "control_temp/src/electrovalvula.cpp"
+        ],
+        "directory": "/home/emilio1625/Documentos/vcs/control_temp",
+        "file": "control_temp/src/electrovalvula.cpp"
+    }
+]
