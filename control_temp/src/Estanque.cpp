@@ -7,7 +7,9 @@ byte Estanque::totalEstanques = 0;
 Estanque::Estanque(byte pin_termometros, byte pin_electrovalvula)
     : _busTermometros(pin_termometros), _termometros(&_busTermometros)
 {
-    _pin_eval = pin_electrovalvula;
+    _pin_eval     = pin_electrovalvula;
+    _estadoActual = _estadoSiguiente = REPOSO;
+    desactivado = true;
 }
 
 void Estanque::begin()
@@ -18,6 +20,7 @@ void Estanque::begin()
     _termometros.begin();
     _configTermometros(_termometros, NUM_TERMOMETROS);
     restaurarUmbrales();
+    desactivado = false;
 #ifdef DEPURAR
     Serial.print(F("Estanque "));
     Serial.print(id);
@@ -88,10 +91,8 @@ enum ESTADO_TERMOMETROS Estanque::revisarUmbrales()
 
 void Estanque::actualizarEstado()
 {
-    static enum ESTADO_MAQUINA estadoActual = REPOSO, siguienteEstado;
-    enum ESTADO_TERMOMETROS entradas        = revisarUmbrales();
-    // almacena el tiempo en que inicio la cuenta atras o el calentamiento
-    static unsigned long int ahora, inicioCuentaAtras, inicioCalentamiento;
+    enum ESTADO_TERMOMETROS entradas = revisarUmbrales();
+    static unsigned long int ahora;
 
 #ifdef DEPURAR
     Serial.print(F("Estanque "));
@@ -99,7 +100,16 @@ void Estanque::actualizarEstado()
     Serial.print(F("Estado actual: "));
 #endif
 
-    switch (estadoActual) {
+    if (desactivado == true) {
+        _estadoActual = _estadoSiguiente = REPOSO;
+        apagarElectrovalvula();
+#ifdef DEPURAR
+        Serial.println(F("desactivado"));
+#endif
+        return;
+    }
+
+    switch (_estadoActual) {
     case REPOSO:
 #ifdef DEPURAR
         Serial.println(F("REPOSO"));
@@ -108,17 +118,17 @@ void Estanque::actualizarEstado()
         if (entradas == ENCIMA) {
             // Si las estradas estan encima, solo podemos esperar
             // a que el estanque se enfrie :c
-            siguienteEstado = REPOSO;
+            _estadoSiguiente = REPOSO;
         } else if (entradas == DEBAJO) {
             // Si bajo la temperatura esperamos un poco antes de
             // comenzar a calentar
-            siguienteEstado   = CUENTA_ATRAS;
-            inicioCuentaAtras = millis();
+            _estadoSiguiente   = CUENTA_ATRAS;
+            _inicioCuentaAtras = millis();
         } else if (entradas == DENTRO) {
             // Si el estanque se encuentra bien, no debemos hacer nada
-            siguienteEstado = REPOSO;
+            _estadoSiguiente = REPOSO;
         } else {
-            siguienteEstado = ERROR;  // nunca debemos llegar aqui
+            _estadoSiguiente = ERROR;  // nunca debemos llegar aqui
         }
         break;
     case CUENTA_ATRAS:
@@ -133,26 +143,26 @@ void Estanque::actualizarEstado()
             ahora = millis();
 #ifdef DEPURAR
             Serial.print(F("Cuenta atras "));
-            Serial.println(ahora - inicioCuentaAtras);
+            Serial.println(ahora - _inicioCuentaAtras);
 #endif
-            if (ahora - inicioCuentaAtras > INTERVALO_CUENTA_ATRAS) {
+            if (ahora - _inicioCuentaAtras > INTERVALO_CUENTA_ATRAS) {
                 // Comienza a contar el tiempo desde que comienza el
                 // calentamiento y la temperatura al inicio de este
                 encenderElectrovalvula();
-                inicioCalentamiento = millis();
-                siguienteEstado     = CALENTANDO;
+                _inicioCalentamiento = millis();
+                _estadoSiguiente     = CALENTANDO;
             } else {
-                siguienteEstado = CUENTA_ATRAS;
+                _estadoSiguiente = CUENTA_ATRAS;
             }
             break;
         case DENTRO:
         case ENCIMA:
             // Si mientras esperamos, las temperaturas se regulan,
             // regresamos al reposo
-            siguienteEstado = REPOSO;
+            _estadoSiguiente = REPOSO;
             break;
         default:
-            siguienteEstado = ERROR;  // nunca debemos llegar aqui
+            _estadoSiguiente = ERROR;  // nunca debemos llegar aqui
             break;
         }
         break;
@@ -163,18 +173,18 @@ void Estanque::actualizarEstado()
         encenderElectrovalvula();
         if (entradas == ENCIMA) {
             // Ya calentamos hasta el umbral hacia arriba
-            siguienteEstado = REPOSO;
+            _estadoSiguiente = REPOSO;
         } else if (entradas == DEBAJO) {
             // Si ha pasado un intervalo de tiempo y la temperatura no ha
             // aumentado, probablemente el calentador fallo y debemos
             // cerrar la valvula o se desbordara el tanque
             ahora = millis();
-            if (ahora - inicioCalentamiento < INTERVALO_CALENTAMIENTO) {
+            if (ahora - _inicioCalentamiento < INTERVALO_CALENTAMIENTO) {
 #ifdef DEPURAR
                 Serial.print(F("Cuenta atras calentamiento "));
-                Serial.println(ahora - inicioCalentamiento);
+                Serial.println(ahora - _inicioCalentamiento);
 #endif
-                siguienteEstado = CALENTANDO;
+                _estadoSiguiente = CALENTANDO;
             } else {
                 error(ERROR_CALENTADOR_FALLO);
             }
@@ -185,7 +195,7 @@ void Estanque::actualizarEstado()
         error(ERROR_PROGRAMACION);
         break;
     }
-    estadoActual = siguienteEstado;
+    _estadoActual = _estadoSiguiente;
 }
 
 void Estanque::guardarUmbrales()

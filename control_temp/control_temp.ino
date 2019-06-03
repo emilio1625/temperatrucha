@@ -49,8 +49,6 @@
 #include "menuIO/chainStream.h"
 #include "menuIO/clickEncoderIn.h"
 
-
-
 ////////////////////////////////////////////////////////////////////////////////
 ///////                          Estanques                               ///////
 ////////////////////////////////////////////////////////////////////////////////
@@ -128,7 +126,6 @@ using namespace Menu;
 #define PIN_DT 3
 #define PIN_SW 4
 
-
 ClickEncoder clickEncoder(PIN_CLK, PIN_DT, PIN_SW, 4);
 ClickEncoderStream encStream(clickEncoder, 1);
 MENU_INPUTS(in, &encStream);
@@ -140,9 +137,27 @@ void timerIsr()
 LiquidCrystal_PCF8574 lcd(DIR_LCD);
 MENU_OUTPUTS(out, MAX_DEPTH, LCD_OUT(lcd, {0, 0, 16, 2}), NONE);
 
-void estanque1GuardaUmbrales() {estanques[0].guardarUmbrales();}
-void estanque2GuardaUmbrales() {estanques[1].guardarUmbrales();}
-void estanque3GuardaUmbrales() {estanques[2].guardarUmbrales();}
+void estanque1GuardaUmbrales()
+{
+    estanques[0].guardarUmbrales();
+}
+void estanque2GuardaUmbrales()
+{
+    estanques[1].guardarUmbrales();
+}
+void estanque3GuardaUmbrales()
+{
+    estanques[2].guardarUmbrales();
+}
+
+TOGGLE(estanques[0].desactivado,
+       desacEstanq1,
+       "Desactivado: ",
+       doNothing,
+       noEvent,
+       wrapStyle,
+       VALUE("Si", true, doNothing, noEvent),
+       VALUE("No", false, doNothing, noEvent));
 
 MENU(Estanque1,
      "Estanque 1",
@@ -169,7 +184,17 @@ MENU(Estanque1,
            estanque1GuardaUmbrales,
            exitEvent,
            noStyle),
+     SUBMENU(desacEstanq1),
      EXIT("atras"));
+
+TOGGLE(estanques[1].desactivado,
+       desacEstanq2,
+       "Desactivado: ",
+       doNothing,
+       noEvent,
+       wrapStyle,
+       VALUE("Si", true, doNothing, noEvent),
+       VALUE("No", false, doNothing, noEvent));
 
 MENU(Estanque2,
      "Estanque 2",
@@ -196,7 +221,17 @@ MENU(Estanque2,
            estanque2GuardaUmbrales,
            exitEvent,
            noStyle),
+     SUBMENU(desacEstanq2),
      EXIT("atras"));
+
+TOGGLE(estanques[2].desactivado,
+       desacEstanq3,
+       "Desactivado: ",
+       doNothing,
+       noEvent,
+       wrapStyle,
+       VALUE("Si", true, doNothing, noEvent),
+       VALUE("No", false, doNothing, noEvent));
 
 MENU(Estanque3,
      "Estanque 3",
@@ -223,6 +258,7 @@ MENU(Estanque3,
            estanque3GuardaUmbrales,
            exitEvent,
            noStyle),
+     SUBMENU(desacEstanq3),
      EXIT("atras"));
 
 MENU(mainMenu,
@@ -247,9 +283,9 @@ NAVROOT(MenuEstanque,
 
 void setup()
 {
-    #ifdef DEPURAR
+#ifdef DEPURAR
     Serial.begin(BRATE);
-    #endif
+#endif
     INICIAR_LCD(lcd);
     lprintln(F("Iniciando..."));
     // Configuramos el estanque
@@ -279,13 +315,13 @@ void setup()
 void loop()
 {
     for (byte i = 0;; i = (i + 1) % NUM_ESTANQUES) {
-        estanqueActual = &estanques[i]; // cambiamos de estanque
+        estanqueActual = &estanques[i];  // cambiamos de estanque
 #ifdef DEPURAR
         Serial.print(F("Estanque "));
         Serial.println(estanqueActual->id);
 #endif
-        planeador.execute(); // realizamos las tareas necesarias
-        MenuEstanque.poll(); // revisamos si estan usando el menu
+        planeador.execute();  // realizamos las tareas necesarias
+        MenuEstanque.poll();  // revisamos si estan usando el menu
         if (MenuEstanque.sleepTask) {
             menuOcupado = false;
         } else {

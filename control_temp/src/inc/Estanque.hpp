@@ -40,6 +40,7 @@ enum ESTADO_MAQUINA {
 class Estanque
 {
 public:
+    bool desactivado;              // Indica si el estanque esta desactivado
     byte id;                       // Numero de estanque
     float umbrales[2];             // Umbral minimo y maximo
     float temps[NUM_TERMOMETROS];  // Tantas mediciones como umbrales por tanque
@@ -64,6 +65,8 @@ private:
     byte _pin_eval;  // pin de la electrovalvula
     OneWire _busTermometros;
     DallasTemperature _termometros;
+    enum ESTADO_MAQUINA _estadoActual, _estadoSiguiente;
+    unsigned long int _inicioCuentaAtras, _inicioCalentamiento;
     void error(enum BU_ERRNO errno);
 };
 
